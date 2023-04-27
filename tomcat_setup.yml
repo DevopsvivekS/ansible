@@ -1,6 +1,6 @@
 ---
 - name: playbook to install apache tomcat
-  hosts: webservers
+  hosts: all
   become: true
   gather_facts: yes
   vars_files:
@@ -24,33 +24,40 @@
       dest: /opt
       remote_src: yes
 
-  - name: change permissions on apache-tomcat dir 
+  - name: change permissions on apache-tomcat dir
     file:
       path: /opt/{{ tomcat_package }}
       mode: 0755
       recurse: yes
+
+  - name: Grant write permissions to catalina.out
+    file:
+      path: /opt/{{ tomcat_package }}/logs/catalina.out
+      mode: 0644
+      owner: ansadmin
+      group: ansadmin
+      state: touch
 
   - name: creating link file for tomcat startup.sh
     file:
       src: /opt/{{ tomcat_package }}/bin/{{item.tomcat_script}}
       dest: /usr/local/bin/{{item.tomcat_command}}
       state: link
-    loop: 
+    loop:
       - { tomcat_script: startup.sh, tomcat_command: tomcatup }
       - { tomcat_script: shutdown.sh, tomcat_command: tomcatdown }
-    notify: start tomcat 
+    notify: start tomcat
 
   - name: change port number
-    copy: 
+    copy:
       src: server.xml
       dest: /opt/{{ tomcat_package }}/conf/server.xml
-    notify: restart tomcat 
+    notify: restart tomcat
 
-  handlers: 
-  - name: start tomcat 
+  handlers:
+  - name: start tomcat
     shell: nohup /usr/local/bin/tomcatup
 
   - name: restart tomcat
-    shell: /usr/local/bin/tomcatdown; nohup /usr/local/bin/tomcatup 
-
+    shell: /usr/local/bin/tomcatdown; nohup /usr/local/bin/tomcatup
 
